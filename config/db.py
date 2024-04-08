@@ -1,3 +1,9 @@
+"""
+This script sets up the connection to the MongoDB database using the AsyncIOMotorClient.
+
+The script loads the MongoDB connection URI from the .env file, creates a connection to the database, and tests the connection by sending a ping to the server.
+"""
+
 import os
 import motor.motor_asyncio
 from dotenv import load_dotenv

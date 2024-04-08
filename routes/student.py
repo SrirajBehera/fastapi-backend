@@ -1,3 +1,16 @@
+"""
+This script defines the API endpoints for managing student records.
+
+The script uses FastAPI to create the following endpoints:
+- POST /students: Create a new student record
+- GET /students: List student records with optional filtering
+- GET /students/{id}: Retrieve a specific student record
+- PATCH /students/{id}: Update a specific student record
+- DELETE /students/{id}: Delete a specific student record
+
+Each endpoint is defined as an async function and includes docstrings, type annotations, and error handling.
+"""
+
 from fastapi import APIRouter, HTTPException, status, Query, Path
 from models.student import Student, StudentPatch
 from config.db import student_collection
@@ -6,7 +19,6 @@ from bson.objectid import ObjectId
 from schemas.student import student_entity
 
 student_router = APIRouter()
-
 
 @student_router.post("/students",
                      description="API to create a student in the system. All fields are mandatory and required while creating the student in the system.",
@@ -30,6 +42,15 @@ student_router = APIRouter()
                      }
                      )
 async def create_student(student: Student):
+    """
+    Create a new student record.
+
+    Args:
+        student (Student): The student object to be created.
+
+    Returns:
+        dict: A dictionary containing the ID of the newly created student record.
+    """
     try:
         student_id = await student_collection.insert_one(student.dict())
         return {"id": str(student_id.inserted_id)}
@@ -73,6 +94,16 @@ async def list_students(
         age: Optional[int] = Query(None,
                                    description="Only records which have age greater than equal to the provided age should be present in the result. If not given or empty, this filter should be applied.")
 ):
+    """
+    List student records with optional filtering.
+
+    Args:
+        country (Optional[str]): Filter by country.
+        age (Optional[int]): Filter by age (greater than or equal to).
+
+    Returns:
+        dict: A dictionary containing the list of student records.
+    """
     try:
         query = {}
         if country:
@@ -92,6 +123,15 @@ async def list_students(
                         }
                     })
 async def get_student(id: str = Path(..., description="The ID of the student previously created.")):
+    """
+    Retrieve a specific student record.
+
+    Args:
+        id (str): The ID of the student to retrieve.
+
+    Returns:
+        Student: The student record.
+    """
     try:
         student = await student_collection.find_one({"_id": ObjectId(id)})
         if not student:
@@ -119,6 +159,16 @@ async def update_student(
         student_update: StudentPatch,
         id: str = Path(..., description="The ID of the student previously created."),
 ):
+    """
+    Update a specific student record.
+
+    Args:
+        student_update (StudentPatch): The updated student data.
+        id (str): The ID of the student to update.
+
+    Returns:
+        dict: An empty dictionary.
+    """
     try:
         student = await student_collection.find_one({"_id": ObjectId(id)})
         if not student:
@@ -155,6 +205,15 @@ async def update_student(
                            }
                        })
 async def delete_student(id: str = Path(..., description="The ID of the student previously created.")):
+    """
+    Delete a specific student record.
+
+    Args:
+        id (str): The ID of the student to delete.
+
+    Returns:
+        dict: An empty dictionary.
+    """
     try:
         result = await student_collection.delete_one({"_id": ObjectId(id)})
         if result.deleted_count == 0:
