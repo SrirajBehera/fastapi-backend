@@ -6,7 +6,7 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"Hello": "world"}
+    return {"message": "Hello, FastAPI on Render!"}
 
 
-app.include_router(student_router)
+app.include_router(student_router, prefix="/api")
