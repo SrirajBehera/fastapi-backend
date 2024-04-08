@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, status, Query, Path
-from models.student import Student
+from models.student import Student, StudentPatch
 from config.db import student_collection
 from typing import Optional
 from bson.objectid import ObjectId
-from schemas.student import student_entity, students_entity
+from schemas.student import student_entity
 
 student_router = APIRouter()
 
@@ -76,7 +76,6 @@ async def list_students(
     if age:
         query["age"] = {"$gte": age}
     students = await student_collection.find(query).to_list(length=None)
-    # return students_entity(students)
     return {"data": [{"name": student["name"], "age": student["age"]} for student in students]}
 
 
@@ -108,16 +107,24 @@ async def get_student(id: str = Path(..., description="The ID of the student pre
                           }
                       })
 async def update_student(
+        student_update: StudentPatch,
         id: str = Path(..., description="The ID of the student previously created."),
-        student_update: Student = {}
 ):
     student = await student_collection.find_one({"_id": ObjectId(id)})
     if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
-    update_data = student_update.dict(exclude_unset=True)
-    if update_data:
-        await student_collection.update_one({"_id": ObjectId(id)}, {"$set": update_data})
+    if student_update.name is not None:
+        student["name"] = student_update.name
+    if student_update.age is not None:
+        student["age"] = student_update.age
+    if student_update.address:
+        if student_update.address.city is not None:
+            student["address"]["city"] = student_update.address.city
+        if student_update.address.country is not None:
+            student["address"]["country"] = student_update.address.country
+
+    await student_collection.update_one({"_id": ObjectId(id)}, {"$set": student})
 
     return {}
 
