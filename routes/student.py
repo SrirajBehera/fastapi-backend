@@ -11,14 +11,59 @@ student_router = APIRouter()
 @student_router.post("/students",
                      description="API to create a student in the system. All fields are mandatory and required while creating the student in the system.",
                      status_code=status.HTTP_201_CREATED,
-                     response_description="A JSON response sending back the ID of the newly created student record.",
+                     responses={
+                         status.HTTP_201_CREATED: {
+                             "description": "A JSON response sending back the ID of the newly created student record.",
+                             "content": {
+                                 "application/json": {
+                                     "schema": {
+                                         "type": "object",
+                                         "properties": {
+                                             "id": {
+                                                 "type": "string"
+                                             }
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+                     }
                      )
 async def create_student(student: Student):
     student_id = await student_collection.insert_one(student.dict())
     return {"id": str(student_id.inserted_id)}
 
 
-@student_router.get("/students", status_code=status.HTTP_200_OK, description="An API to find a list of students. You can apply filters on this API by passing the query parameters as listed below.")
+@student_router.get("/students", status_code=status.HTTP_200_OK,
+                    description="An API to find a list of students. You can apply filters on this API by passing the query parameters as listed below.",
+                    responses={
+                        status.HTTP_200_OK: {
+                            "description": "sample response",
+                            "content": {
+                                 "application/json": {
+                                     "schema": {
+                                         "type": "object",
+                                         "properties": {
+                                             "data": {
+                                                 "type": "array",
+                                                 "items": {
+                                                     "type": "object",
+                                                     "properties": {
+                                                         "name": {
+                                                             "type": "string"
+                                                         },
+                                                         "age": {
+                                                             "type": "integer"
+                                                         }
+                                                     }
+                                                 }
+                                             }
+                                         }
+                                     }
+                                 }
+                             }
+                        }
+                    })
 async def list_students(
         country: Optional[str] = Query(None,
                                        description="To apply filter of country. If not given or empty, this filter should be applied."),
@@ -35,7 +80,12 @@ async def list_students(
     return {"data": [{"name": student["name"], "age": student["age"]} for student in students]}
 
 
-@student_router.get("/students/{id}", response_model=Student, status_code=status.HTTP_200_OK)
+@student_router.get("/students/{id}", response_model=Student, status_code=status.HTTP_200_OK,
+                    responses={
+                        status.HTTP_200_OK: {
+                            "description": "sample response"
+                        }
+                    })
 async def get_student(id: str = Path(..., description="The ID of the student previously created.")):
     student = await student_collection.find_one({"_id": ObjectId(id)})
     if not student:
@@ -43,7 +93,20 @@ async def get_student(id: str = Path(..., description="The ID of the student pre
     return student_entity(student)
 
 
-@student_router.patch("/students/{id}", status_code=status.HTTP_204_NO_CONTENT, description="API to update the student's properties based on information provided. Not mandatory that all information would be sent in PATCH, only what fields are sent should be updated in the Database.")
+@student_router.patch("/students/{id}", status_code=status.HTTP_204_NO_CONTENT,
+                      description="API to update the student's properties based on information provided. Not mandatory that all information would be sent in PATCH, only what fields are sent should be updated in the Database.",
+                      responses={
+                          status.HTTP_204_NO_CONTENT: {
+                              "description": "No content",
+                              "content": {
+                                  "application/json": {
+                                      "schema": {
+                                          "type": "object"
+                                      }
+                                  }
+                              }
+                          }
+                      })
 async def update_student(
         id: str = Path(..., description="The ID of the student previously created."),
         student_update: Student = {}
@@ -59,7 +122,19 @@ async def update_student(
     return {}
 
 
-@student_router.delete("/students/{id}", status_code=status.HTTP_200_OK)
+@student_router.delete("/students/{id}", status_code=status.HTTP_200_OK,
+                       responses={
+                           status.HTTP_200_OK: {
+                               "description": "sample response",
+                               "content": {
+                                   "application/json": {
+                                       "schema": {
+                                           "type": "object"
+                                       }
+                                   }
+                               }
+                           }
+                       })
 async def delete_student(id: str = Path(..., description="The ID of the student previously created.")):
     result = await student_collection.delete_one({"_id": ObjectId(id)})
     if result.deleted_count == 0:
