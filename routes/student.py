@@ -30,8 +30,11 @@ student_router = APIRouter()
                      }
                      )
 async def create_student(student: Student):
-    student_id = await student_collection.insert_one(student.dict())
-    return {"id": str(student_id.inserted_id)}
+    try:
+        student_id = await student_collection.insert_one(student.dict())
+        return {"id": str(student_id.inserted_id)}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @student_router.get("/students", status_code=status.HTTP_200_OK,
@@ -70,13 +73,16 @@ async def list_students(
         age: Optional[int] = Query(None,
                                    description="Only records which have age greater than equal to the provided age should be present in the result. If not given or empty, this filter should be applied.")
 ):
-    query = {}
-    if country:
-        query["address.country"] = country
-    if age:
-        query["age"] = {"$gte": age}
-    students = await student_collection.find(query).to_list(length=None)
-    return {"data": [{"name": student["name"], "age": student["age"]} for student in students]}
+    try:
+        query = {}
+        if country:
+            query["address.country"] = country
+        if age:
+            query["age"] = {"$gte": age}
+        students = await student_collection.find(query).to_list(length=None)
+        return {"data": [{"name": student["name"], "age": student["age"]} for student in students]}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @student_router.get("/students/{id}", response_model=Student, status_code=status.HTTP_200_OK,
@@ -86,10 +92,13 @@ async def list_students(
                         }
                     })
 async def get_student(id: str = Path(..., description="The ID of the student previously created.")):
-    student = await student_collection.find_one({"_id": ObjectId(id)})
-    if not student:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
-    return student_entity(student)
+    try:
+        student = await student_collection.find_one({"_id": ObjectId(id)})
+        if not student:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        return student_entity(student)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @student_router.patch("/students/{id}", status_code=status.HTTP_204_NO_CONTENT,
@@ -110,23 +119,26 @@ async def update_student(
         student_update: StudentPatch,
         id: str = Path(..., description="The ID of the student previously created."),
 ):
-    student = await student_collection.find_one({"_id": ObjectId(id)})
-    if not student:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    try:
+        student = await student_collection.find_one({"_id": ObjectId(id)})
+        if not student:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
-    if student_update.name is not None:
-        student["name"] = student_update.name
-    if student_update.age is not None:
-        student["age"] = student_update.age
-    if student_update.address:
-        if student_update.address.city is not None:
-            student["address"]["city"] = student_update.address.city
-        if student_update.address.country is not None:
-            student["address"]["country"] = student_update.address.country
+        if student_update.name is not None:
+            student["name"] = student_update.name
+        if student_update.age is not None:
+            student["age"] = student_update.age
+        if student_update.address:
+            if student_update.address.city is not None:
+                student["address"]["city"] = student_update.address.city
+            if student_update.address.country is not None:
+                student["address"]["country"] = student_update.address.country
 
-    await student_collection.update_one({"_id": ObjectId(id)}, {"$set": student})
+        await student_collection.update_one({"_id": ObjectId(id)}, {"$set": student})
 
-    return {}
+        return {}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @student_router.delete("/students/{id}", status_code=status.HTTP_200_OK,
@@ -143,7 +155,10 @@ async def update_student(
                            }
                        })
 async def delete_student(id: str = Path(..., description="The ID of the student previously created.")):
-    result = await student_collection.delete_one({"_id": ObjectId(id)})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
-    return {}
+    try:
+        result = await student_collection.delete_one({"_id": ObjectId(id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        return {}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
